@@ -1,0 +1,44 @@
+# dbt/profiles.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Olist Analytics Pipeline — dbt connection profiles
+#
+# All credentials are read from environment variables.
+# Never hard-code passwords here; this file is committed to git.
+#
+# To use locally:
+#   export SNOWFLAKE_ACCOUNT=...  (or fill in .env and run: source .env)
+#   dbt run --target prod --profiles-dir dbt/
+# ─────────────────────────────────────────────────────────────────────────────
+
+olist_analytics:
+  target: prod
+
+  outputs:
+
+    # ── Production target ─────────────────────────────────────────────────
+    prod:
+      type: snowflake
+      account:   "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user:      "{{ env_var('SNOWFLAKE_USER') }}"
+      password:  "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role:      "{{ env_var('SNOWFLAKE_ROLE', 'OLIST_ROLE') }}"
+      database:  "{{ env_var('SNOWFLAKE_DATABASE', 'OLIST_DB') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'OLIST_WH') }}"
+      schema:    RAW                # default — overridden per layer via dbt_project.yml
+      threads:   4
+      client_session_keep_alive: false
+      query_tag: dbt_olist_prod
+
+    # ── Development target (used in CI and local testing) ─────────────────
+    dev:
+      type: snowflake
+      account:   "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user:      "{{ env_var('SNOWFLAKE_USER') }}"
+      password:  "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role:      "{{ env_var('SNOWFLAKE_ROLE', 'OLIST_ROLE') }}"
+      database:  "{{ env_var('SNOWFLAKE_DATABASE', 'OLIST_DB') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'OLIST_WH') }}"
+      schema:    DEV_RAW            # resolves to DEV_STAGING, DEV_MARTS etc. via macro
+      threads:   2
+      client_session_keep_alive: false
+      query_tag: dbt_olist_dev

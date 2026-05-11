@@ -1,0 +1,129 @@
+# docker-compose.yml
+# ──────────────────────────────────────────────────────────────────────────────
+# Local Airflow environment for the Olist Analytics Pipeline.
+# Uses the official Apache Airflow image with the Snowflake provider baked in.
+#
+# Usage:
+#   # 1. Create the .env file (copy .env.example → .env, fill in credentials)
+#   # 2. First-time only: initialise the Airflow metadata DB
+#   docker compose up airflow-init
+#
+#   # 3. Start all services
+#   docker compose up -d
+#
+#   # 4. Open Airflow UI: http://localhost:8080
+#   #    Username: admin  |  Password: admin
+#
+#   # 5. Tear down (preserve volumes)
+#   docker compose down
+#
+#   # 6. Tear down and wipe volumes (clean slate)
+#   docker compose down --volumes --remove-orphans
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: '3.8'
+
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR:                    LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:        postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__LOAD_EXAMPLES:               'false'
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+  AIRFLOW__WEBSERVER__EXPOSE_CONFIG:          'true'
+  AIRFLOW__LOGGING__LOGGING_LEVEL:            INFO
+
+  # Snowflake credentials — sourced from .env file
+  SNOWFLAKE_ACCOUNT:   ${SNOWFLAKE_ACCOUNT}
+  SNOWFLAKE_USER:      ${SNOWFLAKE_USER}
+  SNOWFLAKE_PASSWORD:  ${SNOWFLAKE_PASSWORD}
+  SNOWFLAKE_DATABASE:  ${SNOWFLAKE_DATABASE:-OLIST_DB}
+  SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-OLIST_WH}
+  SNOWFLAKE_ROLE:      ${SNOWFLAKE_ROLE:-OLIST_ROLE}
+
+  # dbt config
+  DBT_PROJECT_DIR:  /opt/airflow/dbt
+  DBT_PROFILES_DIR: /opt/airflow/dbt
+  DBT_TARGET:       prod
+
+  # Airflow admin credentials (init only)
+  _AIRFLOW_WWW_USER_USERNAME: admin
+  _AIRFLOW_WWW_USER_PASSWORD: admin
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.2-python3.11
+  environment:
+    <<: *airflow-env
+
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./dbt:/opt/airflow/dbt
+    - airflow-logs:/opt/airflow/logs
+
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+  # Install Airflow providers and dbt on container startup
+  entrypoint: >
+    bash -c "
+      pip install --quiet
+        apache-airflow-providers-snowflake==5.3.1
+        dbt-snowflake==1.8.0
+      exec /entrypoint \"$$@\"
+    " -- airflow
+
+services:
+
+  # ── Postgres (Airflow metadata DB) ──────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER:     airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB:       airflow
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    restart: unless-stopped
+
+  # ── Airflow init (runs once to bootstrap the DB and admin user) ──────────────
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      <<: *airflow-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+    profiles: [ "init" ]   # only runs with: docker compose --profile init up
+
+  # ── Airflow webserver ────────────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout:  10s
+      retries:  5
+    restart: unless-stopped
+
+  # ── Airflow scheduler ────────────────────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: [ "CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}" ]
+      interval: 30s
+      timeout:  10s
+      retries:  5
+    restart: unless-stopped
+
+volumes:
+  postgres-db:
+  airflow-logs:

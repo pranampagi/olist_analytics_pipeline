@@ -1,0 +1,146 @@
+version: 2
+
+sources:
+  - name: olist_raw
+    database: OLIST_DB
+    schema:   RAW
+    description: >
+      Raw Olist Brazilian e-commerce data loaded from CSV files via the
+      Snowflake internal stage. One CSV per entity. Data covers 100k orders
+      from 2016–2018. All timestamps are in UTC.
+
+    # Source freshness: Airflow loads daily at 01:00 UTC.
+    # Warn if _LOADED_AT is more than 25 hours old; error after 49 hours.
+    freshness:
+      warn_after:  { count: 25, period: hour }
+      error_after: { count: 49, period: hour }
+    loaded_at_field: _LOADED_AT
+
+    tables:
+
+      - name: RAW_ORDERS
+        description: >
+          Central fact table. One row per order. Links customers, items,
+          payments, and reviews. Contains full lifecycle timestamps from
+          purchase through estimated/actual delivery.
+        columns:
+          - name: ORDER_ID
+            description: Unique order identifier (32-char hex string)
+            tests: [ not_null, unique ]
+          - name: CUSTOMER_ID
+            description: FK to RAW_CUSTOMERS
+            tests: [ not_null ]
+          - name: ORDER_STATUS
+            description: Current lifecycle status of the order
+            tests:
+              - not_null
+              - accepted_values:
+                  values:
+                    - delivered
+                    - shipped
+                    - canceled
+                    - unavailable
+                    - invoiced
+                    - processing
+                    - created
+                    - approved
+          - name: ORDER_PURCHASE_TIMESTAMP
+            tests: [ not_null ]
+
+      - name: RAW_CUSTOMERS
+        description: >
+          Customer registry. Note: CUSTOMER_ID is unique per order, while
+          CUSTOMER_UNIQUE_ID identifies the actual person across orders.
+          A single person can have multiple CUSTOMER_IDs.
+        columns:
+          - name: CUSTOMER_ID
+            description: Order-scoped customer identifier
+            tests: [ not_null, unique ]
+          - name: CUSTOMER_UNIQUE_ID
+            description: True person-level identifier
+            tests: [ not_null ]
+          - name: CUSTOMER_STATE
+            description: 2-letter Brazilian state code
+            tests: [ not_null ]
+
+      - name: RAW_ORDER_ITEMS
+        description: >
+          Line items within an order. One row per product per order.
+          An order with 3 products has 3 rows, each with ORDER_ITEM_ID 1, 2, 3.
+        columns:
+          - name: ORDER_ID
+            tests: [ not_null ]
+          - name: ORDER_ITEM_ID
+            description: Sequential item number within the order (1-indexed)
+            tests: [ not_null ]
+          - name: PRODUCT_ID
+            tests: [ not_null ]
+          - name: SELLER_ID
+            tests: [ not_null ]
+          - name: PRICE
+            description: Item price in BRL (Brazilian Real)
+            tests: [ not_null ]
+          - name: FREIGHT_VALUE
+            description: Shipping cost in BRL for this item
+
+      - name: RAW_PRODUCTS
+        description: >
+          Product catalogue. Physical dimensions and category metadata.
+          Some products have NULL category — these are handled in stg_products.
+        columns:
+          - name: PRODUCT_ID
+            tests: [ not_null, unique ]
+
+      - name: RAW_SELLERS
+        description: Seller registry with zip code and Brazilian state.
+        columns:
+          - name: SELLER_ID
+            tests: [ not_null, unique ]
+          - name: SELLER_STATE
+            tests: [ not_null ]
+
+      - name: RAW_ORDER_REVIEWS
+        description: >
+          Customer satisfaction reviews. One review per order (in theory),
+          but duplicates exist in the raw data — deduplicated in staging.
+          Score is 1 (worst) to 5 (best).
+        columns:
+          - name: REVIEW_ID
+            tests: [ not_null ]
+          - name: ORDER_ID
+            tests: [ not_null ]
+          - name: REVIEW_SCORE
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [ 1, 2, 3, 4, 5 ]
+
+      - name: RAW_ORDER_PAYMENTS
+        description: >
+          Payment records. One row per payment method per order. An order paid
+          partly by credit card and partly by voucher has 2 rows.
+          payment_installments is the number of credit card installments.
+        columns:
+          - name: ORDER_ID
+            tests: [ not_null ]
+          - name: PAYMENT_TYPE
+            tests:
+              - accepted_values:
+                  values:
+                    - credit_card
+                    - boleto
+                    - voucher
+                    - debit_card
+                    - not_defined
+          - name: PAYMENT_VALUE
+            tests: [ not_null ]
+
+      - name: RAW_PRODUCT_CATEGORY_TRANSLATION
+        description: >
+          Lookup table mapping Portuguese product category names to English.
+          Used in stg_products to translate category_name.
+        columns:
+          - name: PRODUCT_CATEGORY_NAME
+            tests: [ not_null, unique ]
+          - name: PRODUCT_CATEGORY_NAME_ENGLISH
+            tests: [ not_null ]

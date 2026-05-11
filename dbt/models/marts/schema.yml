@@ -1,0 +1,75 @@
+version: 2
+
+models:
+
+  - name: mart_revenue_by_category
+    description: >
+      Gold-layer mart: revenue and volume metrics per product category.
+      Ordered by total revenue descending. Includes rank, revenue share %,
+      and cumulative revenue for Pareto analysis. One row per category.
+    columns:
+      - name: category_name_english
+        tests: [ not_null, unique ]
+      - name: total_revenue
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: revenue_rank
+        tests: [ not_null ]
+      - name: revenue_share_pct
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0 and revenue_share_pct <= 100"
+
+  - name: mart_seller_performance
+    description: >
+      Gold-layer mart: per-seller performance scorecard.
+      One row per seller. Includes revenue, order volume, average review
+      score, late delivery rate, and an overall performance tier.
+    columns:
+      - name: seller_id
+        tests: [ not_null, unique ]
+      - name: total_revenue
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: late_delivery_rate
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 and late_delivery_rate <= 1"
+      - name: performance_tier
+        tests:
+          - accepted_values:
+              values: [ 'top', 'good', 'average', 'poor' ]
+
+  - name: mart_customer_lifetime_value
+    description: >
+      Gold-layer mart: CLV scorecard per customer (customer_id grain).
+      Includes total spend, order history, review behaviour, delivery
+      experience, and a CLV segment label (high / mid / low value).
+    columns:
+      - name: customer_id
+        tests: [ not_null, unique ]
+      - name: total_spend
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: clv_segment
+        tests:
+          - not_null
+          - accepted_values:
+              values: [ 'high_value', 'mid_value', 'low_value' ]
+
+  - name: mart_monthly_revenue_trend
+    description: >
+      Gold-layer mart: monthly GMV (Gross Merchandise Value) trend.
+      One row per month. Includes MoM revenue growth, rolling 3-month
+      average, and cumulative GMV. Only delivered orders are counted.
+    columns:
+      - name: order_month
+        tests: [ not_null, unique ]
+      - name: monthly_gmv
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"

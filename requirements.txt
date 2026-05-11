@@ -1,0 +1,19 @@
+# requirements.txt
+# ──────────────────────────────────────────────────────────────────────────────
+# Python dependencies for the Olist Analytics Pipeline.
+# Install with: pip install -r requirements.txt
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── dbt ───────────────────────────────────────────────────────────────────────
+dbt-snowflake==1.8.0           # dbt Core + Snowflake adapter
+dbt-utils>=1.0.0,<2.0.0        # installed via dbt deps (packages.yml), listed here for reference
+
+# ── Snowflake Python connector (used by upload_to_snowflake.py) ───────────────
+snowflake-connector-python[pandas]==3.10.1
+
+# ── Airflow + Snowflake provider (for local dev outside Docker) ───────────────
+apache-airflow==2.9.2
+apache-airflow-providers-snowflake==5.3.1
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv==1.0.1           # loads .env file for scripts

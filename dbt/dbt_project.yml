@@ -1,0 +1,59 @@
+name: 'olist_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'olist_analytics'
+
+# ── Path config ────────────────────────────────────────────────────────────
+model-paths:    ["models"]
+analysis-paths: ["analyses"]
+test-paths:     ["tests"]
+macro-paths:    ["macros"]
+snapshot-paths: ["snapshots"]
+docs-paths:     ["docs"]
+
+target-path:  "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# ── Model configuration ────────────────────────────────────────────────────
+models:
+  olist_analytics:
+
+    staging:
+      +schema:        STAGING
+      +materialized:  view      # views are fast to rebuild; no storage cost
+      +tags:          ["staging", "silver"]
+      +docs:
+        node_color: "#3498db"
+
+    intermediate:
+      +schema:        INTERMEDIATE
+      +materialized:  ephemeral  # compiled inline into dependents; no table/view created
+      +tags:          ["intermediate", "silver"]
+      +docs:
+        node_color: "#9b59b6"
+
+    marts:
+      +schema:        MARTS
+      +materialized:  table      # materialised as physical tables for query performance
+      +tags:          ["marts", "gold"]
+      +post-hook:     "GRANT SELECT ON {{ this }} TO ROLE OLIST_ROLE"
+      +docs:
+        node_color: "#f39c12"
+
+# ── Source freshness ───────────────────────────────────────────────────────
+sources:
+  olist_analytics:
+    +database: OLIST_DB
+
+# ── Test severity overrides ────────────────────────────────────────────────
+tests:
+  olist_analytics:
+    +severity: error
+
+# ── Variable defaults ──────────────────────────────────────────────────────
+vars:
+  # Dataset end date — used for churn calculation in mart_customer_lifetime_value
+  dataset_end_date: '2018-10-17'

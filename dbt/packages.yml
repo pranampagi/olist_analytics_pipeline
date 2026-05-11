@@ -1,0 +1,8 @@
+packages:
+  # dbt-utils: cross-database macros, expression_is_true test, surrogate_key, etc.
+  - package: dbt-labs/dbt_utils
+    version: [">=1.0.0", "<2.0.0"]
+
+  # dbt_expectations: Great Expectations-style tests (expect_column_values_to_be_between, etc.)
+  - package: calogica/dbt_expectations
+    version: [">=0.10.0", "<1.0.0"]

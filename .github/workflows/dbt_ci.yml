@@ -1,0 +1,123 @@
+# .github/workflows/dbt_ci.yml
+# ──────────────────────────────────────────────────────────────────────────────
+# dbt CI Pipeline — runs on every pull request to main
+#
+# Steps:
+#   1. Checkout code
+#   2. Set up Python + install dbt-snowflake
+#   3. dbt deps    — install packages (dbt-utils, dbt_expectations)
+#   4. dbt compile — validate all SQL parses correctly (no Snowflake connection needed)
+#   5. dbt run     — materialize models in the DEV target (isolated schemas)
+#   6. dbt test    — run all schema + singular tests
+#   7. dbt docs    — generate docs artifact (uploaded to GitHub Actions)
+#
+# Secrets required in GitHub repository settings:
+#   SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD,
+#   SNOWFLAKE_DATABASE, SNOWFLAKE_WAREHOUSE, SNOWFLAKE_ROLE
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: dbt CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'dbt/**'
+      - '.github/workflows/dbt_ci.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'dbt/**'
+
+jobs:
+  dbt_ci:
+    name: dbt compile → run → test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      SNOWFLAKE_ACCOUNT:   ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER:      ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD:  ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_DATABASE:  ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_ROLE:      ${{ secrets.SNOWFLAKE_ROLE }}
+      DBT_TARGET:          dev
+
+    steps:
+
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ──────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dbt-snowflake
+        run: |
+          pip install --upgrade pip
+          pip install dbt-snowflake==1.8.0
+
+      # ── 3. dbt deps ──────────────────────────────────────────────────────────
+      - name: dbt deps
+        working-directory: dbt
+        run: dbt deps --profiles-dir . --project-dir .
+
+      # ── 4. dbt compile (syntax check — no connection needed) ─────────────────
+      - name: dbt compile
+        working-directory: dbt
+        run: |
+          dbt compile \
+            --profiles-dir . \
+            --project-dir . \
+            --target dev
+
+      # ── 5. dbt run (DEV target → DEV_STAGING, DEV_MARTS schemas) ────────────
+      - name: dbt run
+        working-directory: dbt
+        run: |
+          dbt run \
+            --profiles-dir . \
+            --project-dir . \
+            --target dev \
+            --full-refresh
+
+      # ── 6. dbt test ──────────────────────────────────────────────────────────
+      - name: dbt test
+        working-directory: dbt
+        run: |
+          dbt test \
+            --profiles-dir . \
+            --project-dir . \
+            --target dev
+
+      # ── 7. dbt docs generate ─────────────────────────────────────────────────
+      - name: dbt docs generate
+        working-directory: dbt
+        run: |
+          dbt docs generate \
+            --profiles-dir . \
+            --project-dir . \
+            --target dev
+
+      # ── 8. Upload docs as artifact (downloadable from Actions UI) ────────────
+      - name: Upload dbt docs artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dbt-docs-${{ github.run_id }}
+          path: dbt/target/
+          retention-days: 7
+
+      # ── 9. Upload test results on failure ────────────────────────────────────
+      - name: Upload test results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: dbt-test-results-${{ github.run_id }}
+          path: dbt/target/run_results.json
+          retention-days: 3

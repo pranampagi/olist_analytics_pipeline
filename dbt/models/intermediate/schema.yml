@@ -1,0 +1,43 @@
+version: 2
+
+models:
+
+  - name: int_order_items_enriched
+    description: >
+      Enriched order items — one row per order-item.
+      Joins order_items with products, sellers, and orders to create
+      a wide denormalised record ready for mart aggregations.
+      Materialised as ephemeral (compiled inline into dependents).
+    columns:
+      - name: order_id
+        tests: [ not_null ]
+      - name: order_item_id
+        tests: [ not_null ]
+      - name: customer_id
+        tests: [ not_null ]
+      - name: price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: total_item_value
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: int_customer_orders
+    description: >
+      Customer-level order aggregations — one row per customer_id.
+      Combines orders, payments, and reviews into per-customer spend,
+      order count, tenure, and satisfaction metrics. Used by
+      mart_customer_lifetime_value.
+    columns:
+      - name: customer_id
+        tests: [ not_null, unique ]
+      - name: total_spend
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: total_orders
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 1"
