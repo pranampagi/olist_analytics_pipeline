@@ -41,9 +41,9 @@ monthly as (
         round(avg(price),            2)         as avg_item_price,
 
         -- Delivery quality
-        countif(is_late_delivery = true)        as late_deliveries,
+        count_if(is_late_delivery = true)        as late_deliveries,
         round(
-            countif(is_late_delivery = true)
+            count_if(is_late_delivery = true)
             / nullif(count(*), 0)::float,
         4)                                      as late_delivery_rate
 

@@ -43,10 +43,6 @@ models:
       +docs:
         node_color: "#f39c12"
 
-# ── Source freshness ───────────────────────────────────────────────────────
-sources:
-  olist_analytics:
-    +database: OLIST_DB
 
 # ── Test severity overrides ────────────────────────────────────────────────
 tests:

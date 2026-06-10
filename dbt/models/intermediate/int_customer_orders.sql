@@ -84,8 +84,8 @@ customer_summary as (
 
         -- Order counts
         count(order_id)                                             as total_orders,
-        countif(order_status = 'delivered')                        as delivered_orders,
-        countif(order_status = 'canceled')                         as canceled_orders,
+        count_if(order_status = 'delivered')                        as delivered_orders,
+        count_if(order_status = 'canceled')                         as canceled_orders,
 
         -- Spend
         sum(order_value)                                            as total_spend,
@@ -94,12 +94,12 @@ customer_summary as (
 
         -- Satisfaction
         avg(review_score)                                           as avg_review_score,
-        countif(sentiment = 'positive')                            as positive_reviews,
-        countif(sentiment = 'negative')                            as negative_reviews,
+        count_if(sentiment = 'positive')                            as positive_reviews,
+        count_if(sentiment = 'negative')                            as negative_reviews,
 
         -- Delivery performance
         avg(delivery_delay_days)                                    as avg_delivery_delay_days,
-        countif(is_late_delivery = true)                           as late_deliveries,
+        count_if(is_late_delivery = true)                           as late_deliveries,
 
         -- Payment behaviour
         mode(primary_payment_type)                                  as preferred_payment_type,

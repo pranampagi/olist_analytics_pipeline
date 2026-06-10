@@ -102,7 +102,7 @@ def truncate_all_tables(cursor) -> None:
 def put_file_to_stage(cursor, file_path: Path) -> None:
     """Upload a single CSV to the internal stage with auto-compression."""
     put_sql = (
-        f"PUT file://{file_path.resolve()} "
+        f"PUT 'file://{file_path.resolve()}' "
         f"@OLIST_DB.RAW.OLIST_STAGE "
         f"AUTO_COMPRESS=TRUE OVERWRITE=TRUE"
     )
@@ -120,7 +120,7 @@ def copy_into_table(cursor, table: str, staged_filename: str) -> int:
     copy_sql = f"""
         COPY INTO OLIST_DB.RAW.{table}
         FROM @OLIST_DB.RAW.OLIST_STAGE/{staged_filename}
-        FILE_FORMAT = (FORMAT_NAME = 'OLIST_DB.RAW.CSV_FORMAT')
+        FILE_FORMAT = (FORMAT_NAME = 'OLIST_DB.RAW.CSV_FORMAT' error_on_column_count_mismatch=false)
         ON_ERROR    = 'ABORT_STATEMENT'
         FORCE       = TRUE
     """

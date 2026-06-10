@@ -14,13 +14,15 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              expression: "> 0"
+              arguments:
+                expression: "> 0"
       - name: revenue_rank
         tests: [ not_null ]
       - name: revenue_share_pct
         tests:
           - dbt_utils.expression_is_true:
-              expression: "> 0 and revenue_share_pct <= 100"
+              arguments:
+                expression: ">= 0 and revenue_share_pct <= 100"
 
   - name: mart_seller_performance
     description: >
@@ -33,15 +35,18 @@ models:
       - name: total_revenue
         tests:
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
       - name: late_delivery_rate
         tests:
           - dbt_utils.expression_is_true:
-              expression: ">= 0 and late_delivery_rate <= 1"
+              arguments:
+                expression: ">= 0 and late_delivery_rate <= 1"
       - name: performance_tier
         tests:
           - accepted_values:
-              values: [ 'top', 'good', 'average', 'poor' ]
+              arguments:
+                values: [ 'top', 'good', 'average', 'poor' ]
 
   - name: mart_customer_lifetime_value
     description: >
@@ -54,12 +59,14 @@ models:
       - name: total_spend
         tests:
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
       - name: clv_segment
         tests:
           - not_null
           - accepted_values:
-              values: [ 'high_value', 'mid_value', 'low_value' ]
+              arguments:
+                values: [ 'high_value', 'mid_value', 'low_value' ]
 
   - name: mart_monthly_revenue_trend
     description: >
@@ -72,4 +79,5 @@ models:
       - name: monthly_gmv
         tests:
           - dbt_utils.expression_is_true:
-              expression: "> 0"
+              arguments:
+                expression: "> 0"

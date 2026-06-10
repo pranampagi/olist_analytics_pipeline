@@ -11,10 +11,11 @@ sources:
 
     # Source freshness: Airflow loads daily at 01:00 UTC.
     # Warn if _LOADED_AT is more than 25 hours old; error after 49 hours.
-    freshness:
-      warn_after:  { count: 25, period: hour }
-      error_after: { count: 49, period: hour }
-    loaded_at_field: _LOADED_AT
+    config:
+      freshness:
+        warn_after:  { count: 25, period: hour }
+        error_after: { count: 49, period: hour }
+      loaded_at_field: _LOADED_AT
 
     tables:
 
@@ -35,15 +36,16 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values:
-                    - delivered
-                    - shipped
-                    - canceled
-                    - unavailable
-                    - invoiced
-                    - processing
-                    - created
-                    - approved
+                  arguments:
+                    values:
+                      - delivered
+                      - shipped
+                      - canceled
+                      - unavailable
+                      - invoiced
+                      - processing
+                      - created
+                      - approved
           - name: ORDER_PURCHASE_TIMESTAMP
             tests: [ not_null ]
 
@@ -113,7 +115,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: [ 1, 2, 3, 4, 5 ]
+                  arguments:
+                    values: [ 1, 2, 3, 4, 5 ]
 
       - name: RAW_ORDER_PAYMENTS
         description: >
@@ -126,12 +129,13 @@ sources:
           - name: PAYMENT_TYPE
             tests:
               - accepted_values:
-                  values:
-                    - credit_card
-                    - boleto
-                    - voucher
-                    - debit_card
-                    - not_defined
+                  arguments:
+                    values:
+                      - credit_card
+                      - boleto
+                      - voucher
+                      - debit_card
+                      - not_defined
           - name: PAYMENT_VALUE
             tests: [ not_null ]
 

@@ -48,7 +48,7 @@ category_metrics as (
         -- Delivery performance for this category
         round(avg(delivery_delay_days), 1)      as avg_delivery_delay_days,
         round(
-            countif(is_late_delivery = true)
+            count_if(is_late_delivery = true)
             / nullif(count(*), 0)::float,
         4)                                      as late_delivery_rate
 

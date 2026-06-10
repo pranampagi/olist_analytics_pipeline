@@ -17,15 +17,16 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values:
-                - delivered
-                - shipped
-                - canceled
-                - unavailable
-                - invoiced
-                - processing
-                - created
-                - approved
+              arguments:
+                values:
+                  - delivered
+                  - shipped
+                  - canceled
+                  - unavailable
+                  - invoiced
+                  - processing
+                  - created
+                  - approved
       - name: purchased_at
         tests: [ not_null ]
       - name: delivery_delay_days
@@ -62,15 +63,18 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
       - name: freight_value
         tests:
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
       - name: total_item_value
         tests:
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
 
   - name: stg_products
     description: >
@@ -106,12 +110,14 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [ 1, 2, 3, 4, 5 ]
+              arguments:
+                values: [ 1, 2, 3, 4, 5 ]
       - name: sentiment
         tests:
           - not_null
           - accepted_values:
-              values: [ positive, neutral, negative ]
+              arguments:
+                values: [ positive, neutral, negative ]
 
   - name: stg_order_payments
     description: >
@@ -124,13 +130,15 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
       - name: primary_payment_type
         tests:
           - accepted_values:
-              values:
-                - credit_card
-                - boleto
-                - voucher
-                - debit_card
-                - not_defined
+              arguments:
+                values:
+                  - credit_card
+                  - boleto
+                  - voucher
+                  - debit_card
+                  - not_defined

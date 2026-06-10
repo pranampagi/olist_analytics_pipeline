@@ -52,14 +52,14 @@ seller_metrics as (
 
         -- Customer satisfaction
         round(avg(review_score), 2)                             as avg_review_score,
-        countif(sentiment = 'positive')                        as positive_reviews,
-        countif(sentiment = 'negative')                        as negative_reviews,
-        countif(sentiment = 'neutral')                         as neutral_reviews,
+        count_if(sentiment = 'positive')                        as positive_reviews,
+        count_if(sentiment = 'negative')                        as negative_reviews,
+        count_if(sentiment = 'neutral')                         as neutral_reviews,
 
         -- Delivery performance
         round(avg(delivery_delay_days), 1)                      as avg_delivery_delay_days,
         round(
-            countif(is_late_delivery = true)
+            count_if(is_late_delivery = true)
             / nullif(count(*), 0)::float,
         4)                                                      as late_delivery_rate,
 
