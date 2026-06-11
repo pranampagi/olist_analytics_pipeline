@@ -13,8 +13,8 @@ with seller_stats as (
         round(avg(late_delivery_rate), 4)   as avg_late_rate,
         round(avg(avg_review_score), 2)     as avg_review_score,
         sum(total_revenue)                  as total_revenue,
-        countif(performance_tier = 'top')   as top_sellers,
-        countif(performance_tier = 'poor')  as poor_sellers
+        count_if(performance_tier = 'top')   as top_sellers,
+        count_if(performance_tier = 'poor')  as poor_sellers
     from {{ ref('mart_seller_performance') }}
     group by seller_state
 ),

@@ -19,12 +19,12 @@ with customer_base as (
 summary as (
     select
         count(*)                                        as total_unique_customers,
-        countif(order_count > 1)                       as repeat_customers,
-        countif(order_count = 1)                       as one_time_customers,
+        count_if(order_count > 1)                       as repeat_customers,
+        count_if(order_count = 1)                       as one_time_customers,
 
         round(
-            countif(order_count > 1)
-            / nullif(count(*), 0)::float * 100,
+            count_if(order_count > 1)
+            / count(*)::numeric * 100,
         2)                                              as repeat_purchase_rate_pct,
 
         round(avg(lifetime_spend), 2)                   as avg_lifetime_spend,
