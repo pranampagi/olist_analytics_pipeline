@@ -44,16 +44,40 @@ WAREHOUSE         = "OLIST_WH"
 STAGE             = f"{DATABASE}.{RAW_SCHEMA}.OLIST_STAGE"
 FILE_FORMAT       = f"{DATABASE}.{RAW_SCHEMA}.CSV_FORMAT"
 
-# CSV filename (after compression in stage) → target table
+# CSV filename (after compression in stage) → (target table, column list)
 STAGE_FILE_TABLE_MAP = {
-    "olist_orders_dataset.csv.gz":               "RAW_ORDERS",
-    "olist_customers_dataset.csv.gz":            "RAW_CUSTOMERS",
-    "olist_order_items_dataset.csv.gz":          "RAW_ORDER_ITEMS",
-    "olist_products_dataset.csv.gz":             "RAW_PRODUCTS",
-    "olist_sellers_dataset.csv.gz":              "RAW_SELLERS",
-    "olist_order_reviews_dataset.csv.gz":        "RAW_ORDER_REVIEWS",
-    "olist_order_payments_dataset.csv.gz":       "RAW_ORDER_PAYMENTS",
-    "product_category_name_translation.csv.gz":  "RAW_PRODUCT_CATEGORY_TRANSLATION",
+    "olist_orders_dataset.csv.gz": (
+        "RAW_ORDERS",
+        "(ORDER_ID, CUSTOMER_ID, ORDER_STATUS, ORDER_PURCHASE_TIMESTAMP, ORDER_APPROVED_AT, ORDER_DELIVERED_CARRIER_DATE, ORDER_DELIVERED_CUSTOMER_DATE, ORDER_ESTIMATED_DELIVERY_DATE)"
+    ),
+    "olist_customers_dataset.csv.gz": (
+        "RAW_CUSTOMERS",
+        "(CUSTOMER_ID, CUSTOMER_UNIQUE_ID, CUSTOMER_ZIP_CODE_PREFIX, CUSTOMER_CITY, CUSTOMER_STATE)"
+    ),
+    "olist_order_items_dataset.csv.gz": (
+        "RAW_ORDER_ITEMS",
+        "(ORDER_ID, ORDER_ITEM_ID, PRODUCT_ID, SELLER_ID, SHIPPING_LIMIT_DATE, PRICE, FREIGHT_VALUE)"
+    ),
+    "olist_products_dataset.csv.gz": (
+        "RAW_PRODUCTS",
+        "(PRODUCT_ID, PRODUCT_CATEGORY_NAME, PRODUCT_NAME_LENGTH, PRODUCT_DESCRIPTION_LENGTH, PRODUCT_PHOTOS_QTY, PRODUCT_WEIGHT_G, PRODUCT_LENGTH_CM, PRODUCT_HEIGHT_CM, PRODUCT_WIDTH_CM)"
+    ),
+    "olist_sellers_dataset.csv.gz": (
+        "RAW_SELLERS",
+        "(SELLER_ID, SELLER_ZIP_CODE_PREFIX, SELLER_CITY, SELLER_STATE)"
+    ),
+    "olist_order_reviews_dataset.csv.gz": (
+        "RAW_ORDER_REVIEWS",
+        "(REVIEW_ID, ORDER_ID, REVIEW_SCORE, REVIEW_COMMENT_TITLE, REVIEW_COMMENT_MESSAGE, REVIEW_CREATION_DATE, REVIEW_ANSWER_TIMESTAMP)"
+    ),
+    "olist_order_payments_dataset.csv.gz": (
+        "RAW_ORDER_PAYMENTS",
+        "(ORDER_ID, PAYMENT_SEQUENTIAL, PAYMENT_TYPE, PAYMENT_INSTALLMENTS, PAYMENT_VALUE)"
+    ),
+    "product_category_name_translation.csv.gz": (
+        "RAW_PRODUCT_CATEGORY_TRANSLATION",
+        "(PRODUCT_CATEGORY_NAME, PRODUCT_CATEGORY_NAME_ENGLISH)"
+    ),
 }
 
 MIN_ROW_COUNTS = {
@@ -103,7 +127,7 @@ with DAG(
     # ── 2 + 3. Per-table load groups: truncate → COPY INTO ────────────────────
     load_task_groups = []
 
-    for staged_file, table in STAGE_FILE_TABLE_MAP.items():
+    for staged_file, (table, columns) in STAGE_FILE_TABLE_MAP.items():
         with TaskGroup(group_id=f"load_{table.lower()}") as tg:
 
             truncate = SnowflakeOperator(
@@ -116,7 +140,7 @@ with DAG(
             copy_into = SnowflakeOperator(
                 task_id="copy_into",
                 sql=f"""
-                    COPY INTO {DATABASE}.{RAW_SCHEMA}.{table}
+                    COPY INTO {DATABASE}.{RAW_SCHEMA}.{table} {columns}
                     FROM @{STAGE}/{staged_file}
                     FILE_FORMAT = (FORMAT_NAME = '{FILE_FORMAT}')
                     ON_ERROR    = 'ABORT_STATEMENT'

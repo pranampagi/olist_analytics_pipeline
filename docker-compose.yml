@@ -21,7 +21,6 @@
 #   docker compose down --volumes --remove-orphans
 # ──────────────────────────────────────────────────────────────────────────────
 
-version: '3.8'
 
 x-airflow-env: &airflow-env
   AIRFLOW__CORE__EXECUTOR:                    LocalExecutor
@@ -49,7 +48,9 @@ x-airflow-env: &airflow-env
   _AIRFLOW_WWW_USER_PASSWORD: admin
 
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.9.2-python3.11
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
   environment:
     <<: *airflow-env
 
@@ -62,15 +63,6 @@ x-airflow-common: &airflow-common
   depends_on:
     postgres:
       condition: service_healthy
-
-  # Install Airflow providers and dbt on container startup
-  entrypoint: >
-    bash -c "
-      pip install --quiet
-        apache-airflow-providers-snowflake==5.3.1
-        dbt-snowflake==1.8.0
-      exec /entrypoint \"$$@\"
-    " -- airflow
 
 services:
 
@@ -118,7 +110,7 @@ services:
     <<: *airflow-common
     command: scheduler
     healthcheck:
-      test: [ "CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}" ]
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""]
       interval: 30s
       timeout:  10s
       retries:  5

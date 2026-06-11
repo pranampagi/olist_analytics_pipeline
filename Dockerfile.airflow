@@ -1,0 +1,18 @@
+# Dockerfile.airflow
+# ──────────────────────────────────────────────────────────────────────────────
+# Extends the official Airflow image with Snowflake provider and dbt pre-baked.
+# This avoids a slow pip install on every container restart.
+# ──────────────────────────────────────────────────────────────────────────────
+FROM apache/airflow:2.9.2-python3.11
+
+USER airflow
+
+# Install the Snowflake provider into the main Airflow environment
+RUN pip install --no-cache-dir "apache-airflow-providers-snowflake"
+
+# Install dbt-snowflake into a separate virtual environment to avoid dependency conflicts
+RUN python -m venv /opt/airflow/dbt_venv && \
+    /opt/airflow/dbt_venv/bin/pip install --no-cache-dir "dbt-snowflake==1.8.0"
+
+# Add the dbt virtual environment's bin directory to the PATH so the 'dbt' command works
+ENV PATH="/opt/airflow/dbt_venv/bin:$PATH"
