@@ -31,7 +31,7 @@ on:
 
 jobs:
   dbt_ci:
-    name: dbt compile → run → test
+    name: dbt deps → compile → run → test → docs
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
