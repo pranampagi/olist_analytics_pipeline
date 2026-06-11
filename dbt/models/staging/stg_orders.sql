@@ -66,3 +66,4 @@ cleaned as (
 )
 
 select * from cleaned
+-- CI test comment
