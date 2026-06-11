@@ -20,7 +20,7 @@ name: dbt CI
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
     paths:
       - 'dbt/**'
       - '.github/workflows/dbt_ci.yml'
