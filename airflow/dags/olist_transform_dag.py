@@ -143,7 +143,7 @@ with DAG(
     # ── 9. Generate and publish dbt docs ──────────────────────────────────────
     dbt_docs_generate = BashOperator(
         task_id="dbt_docs_generate",
-        bash_command=f"{DBT_BASE} docs generate",
+        bash_command=f"{DBT_BASE} compile --write-catalog",
         doc_md=(
             "Generates the dbt documentation site with full data lineage graph. "
             "Serve locally with: dbt docs serve --port 8081"

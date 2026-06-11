@@ -99,7 +99,7 @@ jobs:
       - name: dbt docs generate
         working-directory: dbt
         run: |
-          dbt docs generate \
+          dbt compile --write-catalog \
             --profiles-dir . \
             --project-dir . \
             --target dev
